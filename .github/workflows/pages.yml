@@ -31,7 +31,11 @@ jobs:
         with:
           node-version: "20.x"
           cache: "pnpm"
-      - run: |
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - name: build and deploy src directories
+        run: |
           basedir=$(pwd)
           for dir in src/*/; do
             cd $dir
