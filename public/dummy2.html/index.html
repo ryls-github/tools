@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+
+<script type="module">
+const setTimer = () => requestAnimationFrame(() => {
+    document.body.textContent = new Date().toLocaleString()
+    setTimer()
+})
+setTimer()
+</script>
