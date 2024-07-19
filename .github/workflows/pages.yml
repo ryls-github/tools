@@ -40,7 +40,9 @@ jobs:
           for dir in src/*/; do
             cd $dir
             name=$(basename $dir)
-            pnpm install
+            if [ -f pnpm-lock.yaml ]; then
+              pnpm install
+            fi
             pnpm build
             pnpm deploy $basedir/public/$name
           done
