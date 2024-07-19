@@ -42,8 +42,8 @@ jobs:
             if [ -f pnpm-lock.yaml ]; then
               pnpm install
             fi
-            pnpm build
-            pnpm deploy $basedir/public/$name
+            pnpm run build
+            pnpm run deploy $basedir/public/$name
           done
 
   # Single deploy job since we're just deploying
