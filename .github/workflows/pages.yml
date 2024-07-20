@@ -40,7 +40,7 @@ jobs:
         run: |
           basedir=$(pwd)
           for dir in src/*/; do
-            cd $dir
+            cd $basedir/$dir
             name=$(basename $dir)
             if [ -f pnpm-lock.yaml ]; then
               pnpm install
