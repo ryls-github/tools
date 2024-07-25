@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>tools</title>
+
+<script type="module">
+	import { render, html } from "https://cdn.jsdelivr.net/npm/lit-html@3/lit-html.js"
+
+	const root_element = document.getElementById("root")
+
+	const data = {
+		tools: [
+			{
+				name: "toH0",
+				description: "独自記法からHTMLを生成",
+				url: "/toH0/page.html",
+			},
+			{
+				name: "YouTube購入履歴表示",
+				description: "スパチャ履歴を見やすく表示する",
+				url: "/yt-paid-view",
+			},
+			{
+				name: "暗号化・復号",
+				description: "データの暗号化と復号",
+				url: "/enc-dec-rypt",
+			},
+			{
+				name: "dummy1",
+				description: "dummy1",
+				url: "dummy1",
+			},
+			{
+				name: "dummy2",
+				description: "dummy2",
+				url: "dummy2",
+			},
+			{
+				name: "dummy3",
+				description: "dummy3",
+				url: "dummy3",
+			},
+		],
+		tabs: [],
+		active: null,
+		side_shown: false,
+	}
+
+	const handlers = {
+		openSidebar: () => update(() => {
+			data.side_shown = true
+		}),
+		closeSidebar: () => update(() => {
+			data.side_shown = false
+		}),
+		clickTab: (event, tab) => update(() => {
+			data.active = tab.name
+		}),
+		mousedownTab: (event) => update(() => {
+			// ここをキャンセルしないとスクロールエリア内で
+			// ミドルクリックイベントが起きない
+			if (event.button === 1) {
+				event.preventDefault()
+			}
+		}),
+		auxClickTab: (event, tab) => update(() => {
+			// only middle click
+			if (event.button !== 1) return
+			const index = data.tabs.indexOf(tab.name)
+			data.tabs.splice(index, 1)
+			if (tab.name === data.active) {
+				data.active = data.tabs[index] ?? data.tabs.at(-1)
+			}
+		}),
+		dblClickTab: (event, tab) => update(() => {
+			window.open(tab.url)
+		}),
+		tabScroll: (event) => update(() => {
+			if (event.shiftKey) return
+			event.currentTarget.scrollBy({
+				left: event.deltaY * 2,
+				behavior: "smooth",
+			})
+		}),
+		clickTool: (event, tool) => update(() => {
+			if (!data.tabs.some(tab_name => tab_name === tool.name)) {
+				data.tabs.push(tool.name)
+			}
+			data.active = tool.name
+			data.side_shown = false
+		}),
+	}
+
+	const template = () => {
+		const map = new Map(
+			data.tools.map(t => [t.name, t])
+		)
+		const active = map.get(data.active)?.url ?? "about:blank"
+
+		return html`
+			<header>
+				<div class="open-button">
+					<button @click=${handlers.openSidebar}>＋</button>
+				</div>
+				<div class="tabs" @wheel=${handlers.tabScroll}>
+					${data.tabs.map(tab_name => {
+						const tab = map.get(tab_name)
+						return html`
+							<button
+								class=${tab_name === data.active ? "active" : ""}
+								.title=${tab.description}
+								@click=${(event) => handlers.clickTab(event, tab)}
+								@mousedown=${() => handlers.mousedownTab(event)}
+								@auxclick=${(event) => handlers.auxClickTab(event, tab)}
+								@dblclick=${(event) => handlers.dblClickTab(event, tab)}
+							>${tab.name}</button>
+						`
+					})}
+				</div>
+			</header>
+			<aside .inert=${!data.side_shown} class=${data.side_shown ? "shown" : ""}>
+				<div class="close-button">
+					<button @click=${handlers.closeSidebar}>✕</button>
+				</div>
+				<div class="tool-list">
+					${data.tools.map(tool => {
+						return html`
+							<button
+								.title=${tool.description}
+								@click=${(event) => handlers.clickTool(event, tool)}
+							>${tool.name}</button>
+						`
+					})}
+				</div>
+			</aside>
+			<iframe src=${active}></iframe>
+		`
+	}
+
+	const update = (fn) => {
+		fn?.(data)
+		render(template(), root_element)
+	}
+
+	update()
+	globalThis.update = update
+</script>
+
+<style>
+	* {
+		box-sizing: border-box;
+	}
+
+	body {
+		margin: 0;
+		font-family: meiryo;
+		font-size: 14px;
+	}
+
+	#root {
+		width: 100vw;
+		height: 100vh;
+		overflow: hidden;
+		display: flex;
+		flex-flow: column;
+	}
+
+	header {
+		--tab-border-color: #977;
+		--active-tab-color: aquamarine;
+		--active-text-color: balck;
+		--inactive-tab-color: #eee;
+		--inactive-text-color: #444;
+
+		flex: none;
+		height: 40px;
+		display: flex;
+		border-bottom: 1px solid var(--tab-border-color);
+		padding: 0 10px;
+		gap: 10px;
+
+		.open-button {
+			align-self: center;
+			text-align: center;
+			align-content: center;
+			width: 32px;
+			height: 32px;
+			flex: none;
+
+			button {
+				width: 100%;
+				height: 100%;
+				border: 0;
+				border-radius: 50%;
+				background: none;
+				font-weight: bold;
+				font-size: 16px;
+				cursor: pointer;
+
+				&:hover {
+					background-color: aquamarine;
+				}
+			}
+		}
+
+		.tabs {
+			display: flex;
+			align-self: flex-end;
+			align-items: flex-end;
+			gap: 6px;
+			flex: 1 0 0;
+			overflow: auto hidden;
+			margin-bottom: -1px;
+
+			&::-webkit-scrollbar {
+				display: none;
+			}
+
+			button {
+				min-width: 80px;
+				flex: 1 0 max-content;
+				padding: 4px 8px;
+				background: var(--inactive-tab-color);
+				text-align: left;
+				border: 1px solid var(--tab-border-color);
+				border-bottom: 1px solid var(--tab-border-color);
+				color: var(--inactive-text-color);
+				cursor: pointer;
+
+				&.active {
+					border-bottom-color: var(--active-tab-color);
+					background: var(--active-tab-color);
+					color: var(--active-text-color);
+				}
+			}
+		}
+	}
+
+	aside {
+		position: fixed;
+		top: 0;
+		bottom: 0;
+		display: flex;
+		flex-flow: column;
+		transform: translateX(-100%);
+		background: white;
+		transition: transform 0.3s ease 0s;
+
+		&.shown{
+			transform: none;
+			box-shadow: 5px 0 10px 5px #0003;
+		}
+
+		.close-button {
+			display: flex;
+			justify-content: flex-end;
+			flex: none;
+
+			button {
+				width: 32px;
+				height: 32px;
+				border: 0;
+				border-radius: 50%;
+				margin: 4px;
+				background: none;
+				font-weight: bold;
+				font-size: 16px;
+				cursor: pointer;
+
+				&:hover {
+					background-color: aquamarine;
+				}
+			}
+		}
+
+		.tool-list {
+			display: flex;
+			flex-flow: column;
+			min-width: 240px;
+			overflow: auto;
+			flex: 1 0 0;
+
+			button {
+				text-overflow: ellipsis;
+				background: none;
+				border: none;
+				text-align: left;
+				padding: 8px;
+				cursor: pointer;
+
+				&:hover {
+					background-color: aquamarine;
+				}
+			}
+		}
+	}
+
+	iframe {
+		border: 0;
+		flex: 1;
+	}
+
+	button {
+		font-family: inherit;
+		font-size: inherit;
+	}
+</style>
+
+<div id="root"></div>
