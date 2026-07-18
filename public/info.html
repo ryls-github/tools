@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Ultimate Environment Checker</title>
+	<style>
+		:root {
+			--primary: #2563eb;
+			--bg: #f8fafc;
+			--card: #ffffff;
+		}
+
+		body {
+			font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+			background: var(--bg);
+			color: #1e293b;
+			margin: 0;
+			line-height: 1.5;
+		}
+
+		.container {
+			width: 85%;
+			margin: 0 auto;
+		}
+
+		.grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+			gap: 20px;
+		}
+
+		.card {
+			background: var(--card);
+			padding: 20px;
+			border-radius: 12px;
+			box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+			border: 1px solid #e2e8f0;
+		}
+
+		.card h2 {
+			margin: 0 0 15px 0;
+			font-size: 1.1rem;
+			color: var(--primary);
+			display: flex;
+			align-items: center;
+			gap: 8px;
+		}
+
+		.info-row {
+			display: flex;
+			justify-content: space-between;
+			padding: 8px 0;
+			border-bottom: 1px solid #f1f5f9;
+		}
+
+		.info-row:last-child {
+			border-bottom: none;
+		}
+
+		.label {
+			font-weight: 600;
+			color: #64748b;
+			font-size: 0.85rem;
+		}
+
+		.value {
+			font-family: monospace;
+			font-size: 0.9rem;
+			color: #0f172a;
+			word-break: break-all;
+			text-align: right;
+			margin-left: 10px;
+		}
+
+		.message-body {
+			padding: 10px 0;
+			color: #475569;
+			font-size: 0.95rem;
+		}
+	</style>
+	<script type="module">
+		const grid = document.getElementById("inspector-grid")
+
+		// カードを生成・更新する関数
+		function updateCard(id, title, data) {
+			let card = document.getElementById(id)
+			if (!card) {
+				card = document.createElement("div")
+				card.id = id
+				card.className = "card"
+				grid.appendChild(card)
+			}
+
+			function getBodyContent(resolvedData) {
+				if (resolvedData && typeof resolvedData === "object") {
+					return Object.entries(resolvedData).map(([label, value]) => `
+					<div class="info-row">
+						<span class="label">${label}</span>
+						<span class="value">${value}</span>
+					</div>
+				`).join("")
+				} else {
+					return `<div class="message-body">${resolvedData ?? "Loading..."}</div>`
+				}
+			}
+
+			function update(newData) {
+				card.innerHTML = `<h2>${title}</h2>` + getBodyContent(newData)
+			}
+
+			let resolvedData = data
+			if (typeof data === 'function') {
+				try {
+					resolvedData = data(update)
+				} catch (e) {
+					console.error(e)
+					resolvedData = `エラー: ${e.message}`
+				}
+			}
+
+			if (resolvedData instanceof Promise) {
+				update("Loading...")
+				resolvedData.then(v => update(v), e => {
+					console.error(e)
+					update(`エラー: ${e.message || e}`)
+				})
+			} else {
+				update(resolvedData)
+			}
+		}
+
+		function schedule(fn, interval) {
+			return (update) => {
+				setInterval(async () => {
+					update(await fn())
+				}, interval)
+				return fn()
+			}
+		}
+
+		// 基本情報 (Synchronous)
+		updateCard("basic", "🌐 Browser & OS", {
+			"User Agent": navigator.userAgent,
+			"Language": navigator.language,
+			"Platform": navigator.platform,
+			"Cookies Enabled": navigator.cookieEnabled,
+			"Do Not Track": navigator.doNotTrack || "Unset",
+			"PWA/Browser": window.matchMedia("(display-mode: standalone)").matches
+				? "PWA" : "Browser"
+		})
+
+		updateCard("screen", "🖥️ Display", (update) => {
+			let hz = "計測中..."
+
+			{
+				let count = 0
+				const interval = 240
+				const times = []
+				const measure = () => {
+					count++
+					requestAnimationFrame(measure)
+					if (count % interval === 0) {
+						times.unshift(performance.now())
+
+						if (times.length > 1) {
+							hz = interval / (times[0] - times[1]) * 1000
+							times.pop()
+						}
+					}
+				}
+				requestAnimationFrame(measure)
+				setInterval(() => update(render()), 3000)
+			}
+
+			const render = () => {
+				return {
+					"Monitor Res (screen)": `${screen.width} x ${screen.height}`,
+					"Available (avail)": `${screen.availWidth} x ${screen.availHeight}`,
+					"Window Outer": `${window.outerWidth} x ${window.outerHeight}`,
+					"Viewport (innerWidth)": `${window.innerWidth} x ${window.innerHeight}`,
+					"Body Scroll Height": `${document.body.scrollHeight} px`,
+					"Device Pixel Ratio": window.devicePixelRatio,
+					"Color Depth": `${screen.colorDepth}-bit`,
+					"Orientation": screen.orientation
+						? `${screen.orientation.type} (${screen.orientation.angle}°)`
+						: "Unknown",
+					"Hz": hz,
+				}
+			}
+
+			return render()
+		})
+
+		updateCard("viewport_detail", "🔍 Visual Viewport", schedule(() => {
+			if (!window.visualViewport) return "visualViewport がサポートされていません"
+			return {
+				"VV Width": `${Math.round(window.visualViewport.width)} px`,
+				"VV Height": `${Math.round(window.visualViewport.height)} px`,
+				"Scale (Zoom)": window.visualViewport.scale.toFixed(2)
+			}
+		}, 3000))
+
+		updateCard("notch", "📱 Notch / Safe Area", () => {
+			const div = document.createElement("div")
+			div.style.paddingTop = "env(safe-area-inset-top)"
+			div.style.paddingBottom = "env(safe-area-inset-bottom)"
+			div.style.paddingLeft = "env(safe-area-inset-left)"
+			div.style.paddingRight = "env(safe-area-inset-right)"
+			div.style.position = "fixed"
+			div.style.visibility = "hidden"
+			document.body.appendChild(div)
+			const style = window.getComputedStyle(div)
+			const values = {
+				top: style.paddingTop,
+				bottom: style.paddingBottom,
+				left: style.paddingLeft,
+				right: style.paddingRight
+			}
+			document.body.removeChild(div)
+
+			return {
+				"Top (Notch)": values.top,
+				"Bottom (Home Bar)": values.bottom,
+				"Left": values.left,
+				"Right": values.right,
+			}
+		})
+
+		updateCard("hardware", "⚙️ Hardware", {
+			"CPU Cores": navigator.hardwareConcurrency || "N/A",
+			"Memory (approx)": navigator.deviceMemory ? `${navigator.deviceMemory} GB` : "N/A",
+			"Max Touch Points": navigator.maxTouchPoints,
+			"Vibrate": "vibrate" in navigator,
+		})
+
+		// ネットワーク (Network Information API)
+		updateCard("network", "📶 Network", () => {
+			const conn = navigator.connection
+			if (!conn) return "navigator.connection が見つかりません"
+			return {
+				"Effective Type": conn.effectiveType,
+				"Downlink": `${conn.downlink} Mbps`,
+				"RTT": `${conn.rtt} ms`,
+				"Data Saver": conn.saveData ? "ON" : "OFF"
+			}
+		})
+
+		// バッテリー (Battery Status API)
+		updateCard("battery", "🔋 Battery", async (update) => {
+			if (!navigator.getBattery) return "navigator.getBattery がサポートされていません"
+
+			let battery
+			try {
+				battery = await navigator.getBattery()
+			} catch (e) {
+				console.error(e)
+				return "アクセス権限がありません (Permission Denied)"
+			}
+			const get = async () => {
+				return {
+					"Level": `${Math.round(battery.level * 100)}%`,
+					"Charging": battery.charging ? "Charging" : "Discharging",
+					"Charging Time": battery.chargingTime === Infinity ? "N/A" : `${battery.chargingTime}s`,
+					"Discharging Time": battery.dischargingTime === Infinity ? "N/A" : `${battery.dischargingTime}s`
+				}
+			}
+			const up = async () => {
+				update(await get())
+			}
+			battery.addEventListener("levelchange", up)
+			battery.addEventListener("chargingchange", up)
+			return get()
+		})
+
+		// メディアデバイス (カメラ/マイク)
+		updateCard("media", "📸 Media Devices", async () => {
+			if (!navigator.mediaDevices?.enumerateDevices) return "MediaDevices API がサポートされていません"
+			try {
+				const devices = await navigator.mediaDevices.enumerateDevices()
+				return Object.fromEntries(devices.map((d, i) => {
+					return [i, `${d.kind}: ${d.label}`]
+				}))
+			} catch (e) {
+				console.error(e)
+				return "アクセス権限がありません (Permission Denied)"
+			}
+		})
+
+		// ストレージ (Storage Manager API)
+		updateCard("storage", "💾 Storage", async () => {
+			if (!navigator.storage || !navigator.storage.estimate) return "Storage Manager API がサポートされていません"
+			const estimate = await navigator.storage.estimate()
+			const persisted = await navigator.storage.persisted()
+			return {
+				"Quota": `${Math.round(estimate.quota / 1024 / 1024 / 1024)} GB`,
+				"Usage": `${Math.round(estimate.usage / 1024 / 1024)} MB`,
+				"Persisted": persisted ? "Yes" : "No"
+			}
+		})
+
+		// パフォーマンス / メモリ (Performance API)
+		// 推奨される performance.measureUserAgentSpecificMemory は
+		// オリジン分離が必要なのでレガシーな方法
+		updateCard("perf", "⚡ Memory Usage", schedule(() => {
+			if (!performance || !performance.memory) return "Performance Memory API がサポートされていません"
+			return {
+				"JS Heap Limit": `${Math.round(performance.memory.jsHeapSizeLimit / 1024 / 1024)} MB`,
+				"Total Heap": `${Math.round(performance.memory.totalJSHeapSize / 1024 / 1024)} MB`,
+				"Used Heap": `${Math.round(performance.memory.usedJSHeapSize / 1024 / 1024)} MB`
+			}
+		}, 10000))
+
+		updateCard("orientation", "🔄 Orientation", (update) => {
+			window.addEventListener("deviceorientation", (e) => {
+				update({
+					"Alpha (方角)": Math.round(e.alpha) + "°",
+					"Beta (前後傾)": Math.round(e.beta) + "°",
+					"Gamma (左右傾)": Math.round(e.gamma) + "°"
+				})
+			})
+		})
+
+		updateCard("motion", "🚀 Motion (G)", (update) => {
+			window.addEventListener("devicemotion", (e) => {
+				update({
+					"Acceleration": e.acceleration ? `X: ${e.acceleration.x?.toFixed(2) ?? "0.00"}, Y: ${e.acceleration.y?.toFixed(2) ?? "0.00"}, Z: ${e.acceleration.z?.toFixed(2) ?? "0.00"}` : "N/A",
+					"Acceleration (with Gravity)": e.accelerationIncludingGravity ? `X: ${e.accelerationIncludingGravity.x?.toFixed(2) ?? "0.00"}, Y: ${e.accelerationIncludingGravity.y?.toFixed(2) ?? "0.00"}, Z: ${e.accelerationIncludingGravity.z?.toFixed(2) ?? "0.00"}` : "N/A",
+					"Rotation Rate": e.rotationRate ? `α: ${e.rotationRate.alpha?.toFixed(2) ?? "0.00"}, β: ${e.rotationRate.beta?.toFixed(2) ?? "0.00"}, γ: ${e.rotationRate.gamma?.toFixed(2) ?? "0.00"}` : "N/A",
+				})
+			})
+		})
+
+		updateCard("location", "📍 GPS & Altitude", (update) => {
+			if (!navigator.geolocation) return "navigator.geolocation がサポートされていません"
+			navigator.geolocation.watchPosition(
+				(pos) => {
+					update({
+						"Latitude": pos.coords.latitude.toFixed(6),
+						"Longitude": pos.coords.longitude.toFixed(6),
+						"Altitude": pos.coords.altitude ? `${pos.coords.altitude.toFixed(1)} m` : "N/A",
+						"Heading": pos.coords.heading ? `${pos.coords.heading}°` : "N/A",
+						"Speed": pos.coords.speed ? `${(pos.coords.speed * 3.6).toFixed(1)} km/h` : "0 km/h",
+						"Accuracy": `±${Math.round(pos.coords.accuracy)}m`
+					})
+				},
+				(err) => {
+					console.error(err)
+					update(`GPS エラー: ${err.message}`)
+				},
+				{ enableHighAccuracy: true }
+			)
+			return "GPSの測定を開始しています..."
+		})
+
+		const sensorConfigs = [
+			{
+				name: "Accelerometer",
+				title: "🏃 Accelerometer",
+				getValue: (s) => ({ X: s.x?.toFixed(2), Y: s.y?.toFixed(2), Z: s.z?.toFixed(2) })
+			},
+			{
+				name: "AmbientLightSensor",
+				title: "💡 Ambient Light",
+				getValue: (s) => ({ Illuminance: `${s.illuminance?.toFixed(1) ?? "N/A"} lx` })
+			},
+			{
+				name: "GravitySensor",
+				title: "⬇️ Gravity Sensor",
+				getValue: (s) => ({ X: s.x?.toFixed(2), Y: s.y?.toFixed(2), Z: s.z?.toFixed(2) })
+			},
+			{
+				name: "Gyroscope",
+				title: "🔄 Gyroscope",
+				getValue: (s) => ({ X: s.x?.toFixed(2), Y: s.y?.toFixed(2), Z: s.z?.toFixed(2) })
+			},
+			{
+				name: "LinearAccelerationSensor",
+				title: "🏎️ Linear Acceleration",
+				getValue: (s) => ({ X: s.x?.toFixed(2), Y: s.y?.toFixed(2), Z: s.z?.toFixed(2) })
+			},
+			{
+				name: "Magnetometer",
+				title: "🧲 Magnetometer",
+				getValue: (s) => ({ X: s.x?.toFixed(2), Y: s.y?.toFixed(2), Z: s.z?.toFixed(2) })
+			},
+			{
+				name: "AbsoluteOrientationSensor",
+				title: "🧭 Absolute Orientation",
+				getValue: (s) => {
+					const q = s.quaternion || []
+					return {
+						X: q[0]?.toFixed(3) ?? "N/A",
+						Y: q[1]?.toFixed(3) ?? "N/A",
+						Z: q[2]?.toFixed(3) ?? "N/A",
+						W: q[3]?.toFixed(3) ?? "N/A"
+					}
+				}
+			},
+			{
+				name: "RelativeOrientationSensor",
+				title: "🧭 Relative Orientation",
+				getValue: (s) => {
+					const q = s.quaternion || []
+					return {
+						X: q[0]?.toFixed(3) ?? "N/A",
+						Y: q[1]?.toFixed(3) ?? "N/A",
+						Z: q[2]?.toFixed(3) ?? "N/A",
+						W: q[3]?.toFixed(3) ?? "N/A"
+					}
+				}
+			}
+		]
+
+		for (const config of sensorConfigs) {
+			const sensorName = config.name
+			updateCard(`sensor_${sensorName.toLowerCase()}`, config.title, (update) => {
+				if (!window[sensorName]) {
+					return `${sensorName} API がサポートされていません`
+				}
+				try {
+					const sensor = new window[sensorName]({ frequency: 1 })
+					sensor.onreading = () => {
+						update(config.getValue(sensor))
+					}
+					sensor.onerror = (e) => {
+						console.error(e.error)
+						let msg = e.error.name
+						if (e.error.name === "NotReadableError") {
+							msg = "センサーが搭載されていないか、接続できません (NotReadableError)"
+						} else if (e.error.name === "SecurityError") {
+							msg = "アクセス権限がありません (SecurityError)"
+						}
+						update(`${sensorName} エラー: ${msg}`)
+					}
+					sensor.start()
+					return "Loading..."
+				} catch (err) {
+					console.error(err)
+					return `${sensorName} 初期化エラー: ${err.message}`
+				}
+			})
+		}
+	</script>
+</head>
+
+<body>
+	<div class="container">
+		<h1>Environment Information</h1>
+		<div class="grid" id="inspector-grid"></div>
+	</div>
+</body>
+
+</html>
