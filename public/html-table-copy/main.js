@@ -3,15 +3,17 @@
  */
 
 // 1. State Management
-let rowsCount = 3;
-let colsCount = 3;
-let headerRowsCount = 1;
-let headerColsCount = 0;
-let matrix = [
-  ['ヘッダー 1', 'ヘッダー 2', 'ヘッダー 3'],
-  ['データ 1-1', 'データ 1-2', 'データ 1-3'],
-  ['データ 2-1', 'データ 2-2', 'データ 2-3']
-];
+const state = {
+  rowsCount: 3,
+  colsCount: 3,
+  headerRowsCount: 1,
+  headerColsCount: 0,
+  matrix: [
+    ['ヘッダー 1', 'ヘッダー 2', 'ヘッダー 3'],
+    ['データ 1-1', 'データ 1-2', 'データ 1-3'],
+    ['データ 2-1', 'データ 2-2', 'データ 2-3']
+  ]
+};
 
 // 2. DOM Elements Cache
 const $ = (id) => document.getElementById(id);
@@ -22,11 +24,16 @@ const DOM = {
   headerCols: $('header-cols'),
   btnExport: $('btn-export'),
   btnOpenPreview: $('btn-open-preview'),
+  btnOpenImport: $('btn-open-import'),
   excelTable: $('excel-table'),
   dialog: $('output-dialog'),
   htmlOutput: $('html-output'),
   btnCopy: $('btn-copy'),
   btnCloseX: $('btn-dialog-close-x'),
+  importDialog: $('import-dialog'),
+  importInput: $('import-input'),
+  btnDoImport: $('btn-do-import'),
+  btnImportCloseX: $('btn-import-dialog-close-x'),
   toastContainer: $('toast-container'),
   tplColHeader: $('tpl-col-header'),
   tplRowHeader: $('tpl-row-header'),
@@ -44,12 +51,18 @@ const getColumnLabel = (index) => {
   return label;
 };
 
+// Re-promote Toast Container to the top of Top Layer stack
+const promoteToastContainer = () => {
+  DOM.toastContainer.hidePopover();
+  DOM.toastContainer.showPopover();
+};
+
 // Toast Notification (Modern Popover API - Top Layer)
 const showToast = (message, type = 'success') => {
   const toastFragment = DOM.tplToast.content.cloneNode(true);
   const toastElem = toastFragment.querySelector('.toast');
   const svgElem = toastFragment.querySelector('svg');
-  
+
   toastFragment.querySelector('.toast-msg').textContent = message;
 
   if (type === 'warning') {
@@ -61,27 +74,32 @@ const showToast = (message, type = 'success') => {
   }
 
   DOM.toastContainer.append(toastFragment);
+  promoteToastContainer();
 
-  // Re-promote to top of Top Layer stack
-  try { DOM.toastContainer.hidePopover(); } catch (e) {}
-  DOM.toastContainer.showPopover();
-  
   setTimeout(() => {
     toastElem.remove();
     if (!DOM.toastContainer.children.length) {
-      try { DOM.toastContainer.hidePopover(); } catch (e) {}
+      DOM.toastContainer.hidePopover();
     }
   }, 3000);
 };
 
-// Synchronize matrix size with rowsCount & colsCount
-const syncMatrix = () => {
-  while (matrix.length < rowsCount) matrix.push(new Array(colsCount).fill(''));
-  if (matrix.length > rowsCount) matrix.length = rowsCount;
+// Open Modal Dialog & ensure Toast remains on top of Top Layer stack
+const openModal = (dialogElem) => {
+  dialogElem.showModal();
+  if (DOM.toastContainer.children.length > 0) {
+    promoteToastContainer();
+  }
+};
 
-  for (let r = 0; r < rowsCount; r++) {
-    while (matrix[r].length < colsCount) matrix[r].push('');
-    if (matrix[r].length > colsCount) matrix[r].length = colsCount;
+// Synchronize matrix size with state.rowsCount & state.colsCount
+const syncMatrix = () => {
+  while (state.matrix.length < state.rowsCount) state.matrix.push(new Array(state.colsCount).fill(''));
+  if (state.matrix.length > state.rowsCount) state.matrix.length = state.rowsCount;
+
+  for (let r = 0; r < state.rowsCount; r++) {
+    while (state.matrix[r].length < state.colsCount) state.matrix[r].push('');
+    if (state.matrix[r].length > state.colsCount) state.matrix[r].length = state.colsCount;
   }
 };
 
@@ -99,14 +117,14 @@ const renderTable = () => {
   cornerTh.textContent = '＃';
   headerTr.append(cornerTh);
 
-  for (let c = 0; c < colsCount; c++) {
+  for (let c = 0; c < state.colsCount; c++) {
     const colFragment = DOM.tplColHeader.content.cloneNode(true);
     const th = colFragment.querySelector('th');
 
     colFragment.querySelector('.col-title').textContent = getColumnLabel(c);
 
     const badge = colFragment.querySelector('.header-tag-badge');
-    if (c >= headerColsCount) {
+    if (c >= state.headerColsCount) {
       badge.remove();
     }
 
@@ -122,7 +140,7 @@ const renderTable = () => {
 
   // Create Body Rows
   const tbody = document.createElement('tbody');
-  for (let r = 0; r < rowsCount; r++) {
+  for (let r = 0; r < state.rowsCount; r++) {
     const tr = document.createElement('tr');
 
     // Row Header Cell
@@ -132,7 +150,7 @@ const renderTable = () => {
     rowFragment.querySelector('.row-title').textContent = r + 1;
 
     const badge = rowFragment.querySelector('.header-tag-badge');
-    if (r >= headerRowsCount) {
+    if (r >= state.headerRowsCount) {
       badge.remove();
     }
 
@@ -142,15 +160,15 @@ const renderTable = () => {
     tr.append(rowTd);
 
     // Data Cells
-    for (let c = 0; c < colsCount; c++) {
+    for (let c = 0; c < state.colsCount; c++) {
       const cellFragment = DOM.tplDataCell.content.cloneNode(true);
       const dataTd = cellFragment.querySelector('td');
       const textarea = cellFragment.querySelector('textarea');
 
-      const isHeaderCell = r < headerRowsCount || c < headerColsCount;
+      const isHeaderCell = r < state.headerRowsCount || c < state.headerColsCount;
       if (isHeaderCell) dataTd.classList.add('is-th-cell');
 
-      textarea.value = matrix[r][c] || '';
+      textarea.value = state.matrix[r][c] || '';
       textarea.placeholder = isHeaderCell ? '[th セル]' : '[td セル]';
 
       const autoAdjust = () => {
@@ -159,7 +177,7 @@ const renderTable = () => {
       };
 
       textarea.oninput = (e) => {
-        matrix[r][c] = e.target.value;
+        state.matrix[r][c] = e.target.value;
         autoAdjust();
       };
       textarea.onfocus = autoAdjust;
@@ -175,32 +193,32 @@ const renderTable = () => {
 
 // 5. Grid Modifiers
 const insertRow = (index) => {
-  matrix.splice(index, 0, new Array(colsCount).fill(''));
-  rowsCount++;
-  DOM.inputRows.value = rowsCount;
+  state.matrix.splice(index, 0, new Array(state.colsCount).fill(''));
+  state.rowsCount++;
+  DOM.inputRows.value = state.rowsCount;
   renderTable();
 };
 
 const deleteRow = (index) => {
-  if (rowsCount <= 1) return showToast('これ以上行を削除できません（最小1行）', 'warning');
-  matrix.splice(index, 1);
-  rowsCount--;
-  DOM.inputRows.value = rowsCount;
+  if (state.rowsCount <= 1) return showToast('これ以上行を削除できません（最小1行）', 'warning');
+  state.matrix.splice(index, 1);
+  state.rowsCount--;
+  DOM.inputRows.value = state.rowsCount;
   renderTable();
 };
 
 const insertColumn = (index) => {
-  matrix.forEach(row => row.splice(index, 0, ''));
-  colsCount++;
-  DOM.inputCols.value = colsCount;
+  state.matrix.forEach(row => row.splice(index, 0, ''));
+  state.colsCount++;
+  DOM.inputCols.value = state.colsCount;
   renderTable();
 };
 
 const deleteColumn = (index) => {
-  if (colsCount <= 1) return showToast('これ以上列を削除できません（最小1列）', 'warning');
-  matrix.forEach(row => row.splice(index, 1));
-  colsCount--;
-  DOM.inputCols.value = colsCount;
+  if (state.colsCount <= 1) return showToast('これ以上列を削除できません（最小1列）', 'warning');
+  state.matrix.forEach(row => row.splice(index, 1));
+  state.colsCount--;
+  DOM.inputCols.value = state.colsCount;
   renderTable();
 };
 
@@ -216,14 +234,14 @@ const buildTableElement = () => {
   };
 
   // Header Rows (thead)
-  if (headerRowsCount > 0) {
+  if (state.headerRowsCount > 0) {
     const thead = document.createElement('thead');
-    const endHeaderRow = Math.min(headerRowsCount, rowsCount);
+    const endHeaderRow = Math.min(state.headerRowsCount, state.rowsCount);
     for (let r = 0; r < endHeaderRow; r++) {
       const tr = document.createElement('tr');
-      for (let c = 0; c < colsCount; c++) {
+      for (let c = 0; c < state.colsCount; c++) {
         const th = document.createElement('th');
-        appendCellContent(th, matrix[r][c]);
+        appendCellContent(th, state.matrix[r][c]);
         tr.append(th);
       }
       thead.append(tr);
@@ -232,14 +250,14 @@ const buildTableElement = () => {
   }
 
   // Body Rows (tbody)
-  if (headerRowsCount < rowsCount) {
+  if (state.headerRowsCount < state.rowsCount) {
     const tbody = document.createElement('tbody');
-    for (let r = headerRowsCount; r < rowsCount; r++) {
+    for (let r = state.headerRowsCount; r < state.rowsCount; r++) {
       const tr = document.createElement('tr');
-      for (let c = 0; c < colsCount; c++) {
-        const tag = c < headerColsCount ? 'th' : 'td';
+      for (let c = 0; c < state.colsCount; c++) {
+        const tag = c < state.headerColsCount ? 'th' : 'td';
         const cell = document.createElement(tag);
-        appendCellContent(cell, matrix[r][c]);
+        appendCellContent(cell, state.matrix[r][c]);
         tr.append(cell);
       }
       tbody.append(tr);
@@ -317,46 +335,158 @@ const openPreviewWindow = () => {
   }
 };
 
-// 8. Event Initialization
+// 8. TSV / CSV Import Logic
+const parseTSVorCSV = (text) => {
+  const isTSV = text.includes('\t');
+  const delimiter = isTSV ? '\t' : ',';
+
+  const rows = [];
+  let currentRow = [];
+  let currentCell = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    const nextChar = text[i + 1];
+
+    if (char === '"') {
+      if (inQuotes && nextChar === '"') {
+        currentCell += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === delimiter && !inQuotes) {
+      currentRow.push(currentCell);
+      currentCell = '';
+    } else if ((char === '\r' || char === '\n') && !inQuotes) {
+      if (char === '\r' && nextChar === '\n') {
+        i++;
+      }
+      currentRow.push(currentCell);
+      rows.push(currentRow);
+      currentRow = [];
+      currentCell = '';
+    } else {
+      currentCell += char;
+    }
+  }
+
+  if (currentCell !== '' || currentRow.length > 0) {
+    currentRow.push(currentCell);
+    rows.push(currentRow);
+  }
+
+  if (rows.length > 1 && rows[rows.length - 1].length === 1 && rows[rows.length - 1][0] === '') {
+    rows.pop();
+  }
+
+  return { rows, isTSV };
+};
+
+const importData = (rawText) => {
+  if (!rawText || !rawText.trim()) {
+    showToast('読み込むデータを入力してください', 'warning');
+    return;
+  }
+
+  const { rows, isTSV } = parseTSVorCSV(rawText);
+  if (!rows || rows.length === 0) {
+    showToast('有効なデータが見つかりませんでした', 'warning');
+    return;
+  }
+
+  const newRowsCount = rows.length;
+  const newColsCount = Math.max(...rows.map(r => r.length), 1);
+
+  const newMatrix = rows.map(r => {
+    const padded = [...r];
+    while (padded.length < newColsCount) {
+      padded.push('');
+    }
+    return padded;
+  });
+
+  state.rowsCount = newRowsCount;
+  state.colsCount = newColsCount;
+  state.headerRowsCount = 0;
+  state.headerColsCount = 0;
+  state.matrix = newMatrix;
+
+  DOM.inputRows.value = state.rowsCount;
+  DOM.inputCols.value = state.colsCount;
+  DOM.headerRows.value = state.headerRowsCount;
+  DOM.headerCols.value = state.headerColsCount;
+  DOM.headerRows.max = state.rowsCount;
+  DOM.headerCols.max = state.colsCount;
+
+  renderTable();
+
+  DOM.importDialog.close();
+  DOM.importInput.value = '';
+  const formatName = isTSV ? 'TSV' : 'CSV';
+  showToast(`${formatName} データを読み込みました (${state.rowsCount}行 × ${state.colsCount}列)`);
+};
+
+// 9. Event Initialization
 const initEvents = () => {
   DOM.inputRows.onchange = (e) => {
-    rowsCount = Math.max(1, Math.min(100, +e.target.value || 1));
-    headerRowsCount = Math.min(headerRowsCount, rowsCount);
-    DOM.headerRows.max = rowsCount;
-    DOM.headerRows.value = headerRowsCount;
-    e.target.value = rowsCount;
+    state.rowsCount = Math.max(1, Math.min(100, +e.target.value || 1));
+    state.headerRowsCount = Math.min(state.headerRowsCount, state.rowsCount);
+    DOM.headerRows.max = state.rowsCount;
+    DOM.headerRows.value = state.headerRowsCount;
+    e.target.value = state.rowsCount;
     renderTable();
   };
 
   DOM.inputCols.onchange = (e) => {
-    colsCount = Math.max(1, Math.min(50, +e.target.value || 1));
-    headerColsCount = Math.min(headerColsCount, colsCount);
-    DOM.headerCols.max = colsCount;
-    DOM.headerCols.value = headerColsCount;
-    e.target.value = colsCount;
+    state.colsCount = Math.max(1, Math.min(50, +e.target.value || 1));
+    state.headerColsCount = Math.min(state.headerColsCount, state.colsCount);
+    DOM.headerCols.max = state.colsCount;
+    DOM.headerCols.value = state.headerColsCount;
+    e.target.value = state.colsCount;
     renderTable();
   };
 
   DOM.headerRows.onchange = (e) => {
-    headerRowsCount = Math.max(0, Math.min(rowsCount, +e.target.value || 0));
-    e.target.value = headerRowsCount;
+    state.headerRowsCount = Math.max(0, Math.min(state.rowsCount, +e.target.value || 0));
+    e.target.value = state.headerRowsCount;
     renderTable();
   };
 
   DOM.headerCols.onchange = (e) => {
-    headerColsCount = Math.max(0, Math.min(colsCount, +e.target.value || 0));
-    e.target.value = headerColsCount;
+    state.headerColsCount = Math.max(0, Math.min(state.colsCount, +e.target.value || 0));
+    e.target.value = state.headerColsCount;
     renderTable();
   };
 
   // Open Preview Data URL in new tab
   DOM.btnOpenPreview.onclick = openPreviewWindow;
 
+  // Open Import Dialog
+  DOM.btnOpenImport.onclick = () => {
+    DOM.importInput.value = '';
+    openModal(DOM.importDialog);
+  };
+
+  DOM.btnImportCloseX.onclick = () => DOM.importDialog.close();
+
+  DOM.btnDoImport.onclick = () => {
+    importData(DOM.importInput.value);
+  };
+
+  DOM.importDialog.onclick = (e) => {
+    const rect = DOM.importDialog.getBoundingClientRect();
+    if (e.clientY < rect.top || e.clientY > rect.bottom || e.clientX < rect.left || e.clientX > rect.right) {
+      DOM.importDialog.close();
+    }
+  };
+
   // Open Output Dialog
   DOM.btnExport.onclick = () => {
     const selectedFormat = document.querySelector('input[name="format-style"]:checked')?.value || 'pretty';
     DOM.htmlOutput.value = generateHTML(selectedFormat);
-    DOM.dialog.showModal();
+    openModal(DOM.dialog);
   };
 
   // Dynamically update output code format inside dialog
