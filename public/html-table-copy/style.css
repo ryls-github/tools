@@ -1,0 +1,546 @@
+/* CSS for Table Generator & Preview Application */
+
+:root {
+  --bg-color: #0f172a;
+  --panel-bg: #1e293b;
+  --panel-border: #334155;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --primary-color: #38bdf8;
+  --primary-hover: #0284c7;
+  --primary-light: rgba(56, 189, 248, 0.15);
+  --accent-color: #10b981;
+  --accent-hover: #059669;
+  --danger-color: #f43f5e;
+  --danger-hover: #e11d48;
+  --header-bg: #1e293b;
+  --table-header-bg: #334155;
+  --table-header-text: #cbd5e1;
+  --th-tag-bg: rgba(56, 189, 248, 0.1);
+  --cell-bg: #0f172a;
+  --cell-border: #334155;
+  --cell-focus-border: #38bdf8;
+  --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  font-family: var(--font-family);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* App Header */
+.app-header {
+  background-color: var(--panel-bg);
+  border-bottom: 1px solid var(--panel-border);
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.app-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.app-title svg {
+  color: var(--primary-color);
+}
+
+.nav-links {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-decoration: none;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid var(--panel-border);
+  transition: all 0.2s ease;
+}
+
+.nav-btn:hover {
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--text-muted);
+}
+
+.nav-btn.active {
+  color: var(--primary-color);
+  background: var(--primary-light);
+  border-color: var(--primary-color);
+}
+
+/* Main Container */
+.main-container {
+  flex: 1;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: 1600px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* Toolbar / Control Panel */
+.control-panel {
+  background-color: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+}
+
+.control-group-wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  align-items: center;
+}
+
+.control-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.control-group label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.input-number {
+  width: 70px;
+  background-color: var(--cell-bg);
+  border: 1px solid var(--panel-border);
+  color: var(--text-main);
+  border-radius: var(--radius-sm);
+  padding: 0.4rem 0.6rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: center;
+  transition: border-color 0.2s;
+}
+
+.input-number:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px var(--primary-light);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1.1rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.btn-primary {
+  background-color: var(--primary-color);
+  color: #0f172a;
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-hover);
+  box-shadow: 0 0 12px var(--primary-light);
+}
+
+.btn-accent {
+  background-color: var(--accent-color);
+  color: #0f172a;
+}
+
+.btn-accent:hover {
+  background-color: var(--accent-hover);
+}
+
+.btn-secondary {
+  background-color: transparent;
+  border: 1px solid var(--panel-border);
+  color: var(--text-main);
+}
+
+.btn-secondary:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  border-color: var(--text-muted);
+}
+
+.btn-danger {
+  background-color: var(--danger-color);
+  color: #ffffff;
+}
+
+.btn-danger:hover {
+  background-color: var(--danger-hover);
+}
+
+.btn-sm {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8rem;
+}
+
+/* Radio Format Toggle */
+.format-toggle {
+  display: flex;
+  background: var(--cell-bg);
+  padding: 3px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--panel-border);
+}
+
+.format-option {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 4px;
+  user-select: none;
+  transition: all 0.2s;
+}
+
+.format-option input {
+  display: none;
+}
+
+.format-option:has(input:checked) {
+  background-color: var(--panel-bg);
+  color: var(--primary-color);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Table Area */
+.table-viewport {
+  flex: 1;
+  background-color: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-md);
+  overflow: auto;
+  position: relative;
+  max-height: calc(100vh - 120px);
+  box-shadow: var(--shadow-lg);
+}
+
+.excel-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: max-content;
+  min-width: 100%;
+}
+
+/* Corner Header Cell */
+.excel-table th.corner-header {
+  position: sticky;
+  top: 0;
+  left: 0;
+  z-index: 30;
+  background-color: #0f172a;
+  border-right: 2px solid var(--panel-border);
+  border-bottom: 2px solid var(--panel-border);
+  min-width: 50px;
+  width: 50px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  padding: 4px;
+}
+
+/* Column Headers */
+.excel-table th.col-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background-color: var(--table-header-bg);
+  color: var(--table-header-text);
+  border-right: 1px solid var(--panel-border);
+  border-bottom: 2px solid var(--panel-border);
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.5rem;
+  min-width: 160px;
+  user-select: none;
+}
+
+.col-header-content,
+.row-header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.header-title-container {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.header-tag-badge {
+  font-size: 0.7rem;
+  background: var(--th-tag-bg);
+  color: var(--primary-color);
+  padding: 1px 4px;
+  border-radius: 3px;
+  border: 1px solid var(--primary-color);
+  font-family: var(--font-mono);
+  line-height: 1;
+}
+
+.col-actions, .row-actions {
+  display: flex;
+  gap: 2px;
+  opacity: 0.4;
+  transition: opacity 0.2s;
+}
+
+.col-header:hover .col-actions,
+.row-header:hover .row-actions {
+  opacity: 1;
+}
+
+.action-icon-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.action-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: var(--text-main);
+}
+
+.action-icon-btn.delete-btn:hover {
+  background: rgba(244, 63, 94, 0.2);
+  color: var(--danger-color);
+}
+
+/* Row Headers */
+.excel-table td.row-header {
+  position: sticky;
+  left: 0;
+  z-index: 10;
+  background-color: var(--table-header-bg);
+  color: var(--table-header-text);
+  border-right: 2px solid var(--panel-border);
+  border-bottom: 1px solid var(--panel-border);
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.5rem;
+  text-align: center;
+  min-width: 60px;
+  user-select: none;
+}
+
+.row-header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem;
+}
+
+/* Data Cells */
+.excel-table td.data-cell {
+  background-color: var(--cell-bg);
+  border-right: 1px solid var(--cell-border);
+  border-bottom: 1px solid var(--cell-border);
+  padding: 0;
+  position: relative;
+  height: 1px; /* Required CSS technique to allow inner height 100% in table cells */
+  vertical-align: top;
+}
+
+.excel-table td.data-cell.is-th-cell {
+  background-color: rgba(56, 189, 248, 0.03);
+}
+
+.cell-textarea {
+  width: 100%;
+  height: 100%;
+  min-height: 48px;
+  background: transparent;
+  border: none;
+  color: var(--text-main);
+  font-family: var(--font-family);
+  font-size: 0.9rem;
+  padding: 0.6rem;
+  resize: none; /* Disable manual single-cell resize handle */
+  display: block;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.cell-textarea:focus {
+  outline: none;
+  background-color: rgba(56, 189, 248, 0.08);
+  box-shadow: inset 0 0 0 2px var(--primary-color);
+}
+
+/* Modal Dialog */
+dialog.output-dialog {
+  margin: auto;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-lg);
+  background-color: var(--panel-bg);
+  color: var(--text-main);
+  padding: 1.5rem;
+  width: 90%;
+  max-width: 800px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.6);
+}
+
+dialog::backdrop {
+  background-color: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(4px);
+}
+
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.dialog-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.code-output-textarea {
+  width: 100%;
+  height: 350px;
+  background-color: #090d16;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-sm);
+  color: #a5f3fc;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  padding: 1rem;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.code-output-textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+/* Toast Notifications (Modern Popover API for Top Layer) */
+.toast-container[popover] {
+  position: fixed;
+  inset: unset;
+  bottom: 2rem;
+  right: 2rem;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  pointer-events: none;
+}
+
+.toast {
+  background-color: var(--accent-color);
+  color: #0f172a;
+  padding: 0.75rem 1.25rem;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 0.9rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.7s forwards;
+  pointer-events: auto;
+}
+
+.toast.toast-warning {
+  background-color: #f59e0b;
+  color: #0f172a;
+}
+
+.toast.toast-info {
+  background-color: #38bdf8;
+  color: #0f172a;
+}
+
+@keyframes slideIn {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
